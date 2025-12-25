@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, updateStatus } from "react";
 import {
   Users,
   IndianRupee,
@@ -35,7 +35,73 @@ const AdminPanel = () => {
     });
   };
 
-  const fetchData = async () => {
+  // const fetchData = async () => {
+  //   try {
+  //     const ordersRes = await fetch(`${API_BASE_URL}/api/admin/orders`);
+  //     const ordersData = await ordersRes.json();
+
+  //     const statsRes = await fetch(`${API_BASE_URL}/api/admin/stats`);
+  //     const statsData = await statsRes.json();
+
+  //     if (ordersData?.success && Array.isArray(ordersData.orders)) {
+  //       const newOrders = ordersData.orders.reverse();
+  //       setOrders(newOrders);
+
+  //       if (newOrders.length > previousOrderCount && previousOrderCount > 0) {
+  //         playRingtone();
+  //       }
+  //       setPreviousOrderCount(newOrders.length);
+  //     }
+
+  //     if (statsData?.success) {
+  //       setStats({
+  //         totalUsers: statsData.totalUsers || 0,
+  //         totalOrders: statsData.totalOrders || 0,
+  //         totalRevenue: statsData.totalRevenue || 0,
+  //         todayRevenue: statsData.todayRevenue || 0,
+  //       });
+  //     }
+
+  //     setLastUpdate(new Date());
+  //   } catch (err) {
+  //     console.error("Fetch error:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const updateStatus = async (orderId, newStatus) => {
+  //   setUpdatingId(orderId);
+  //   try {
+  //     const res = await fetch(
+  //       `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
+  //       {
+  //         method: "PATCH",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ status: newStatus }),
+  //       }
+  //     );
+
+  //     if (res.ok) {
+  //       setOrders((prev) =>
+  //         prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
+  //       );
+  //     } else {
+  //       alert("Status update failed");
+  //     }
+  //   } catch (err) {
+  //     alert("Status update failed: " + err.message);
+  //   } finally {
+  //     setUpdatingId(null);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchData();
+  //   const interval = setInterval(fetchData, 10000);
+  //   return () => clearInterval(interval);
+  // }, [previousOrderCount]);
+  const fetchData = useCallback(async () => {
     try {
       const ordersRes = await fetch(`${API_BASE_URL}/api/admin/orders`);
       const ordersData = await ordersRes.json();
@@ -68,39 +134,15 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [previousOrderCount, playRingtone]); // ← Dependencies that actually affect fetchData
+  // Note: playRingtone is stable (defined outside), so it's safe
 
-  const updateStatus = async (orderId, newStatus) => {
-    setUpdatingId(orderId);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (res.ok) {
-        setOrders((prev) =>
-          prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
-        );
-      } else {
-        alert("Status update failed");
-      }
-    } catch (err) {
-      alert("Status update failed: " + err.message);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
+  // Then update the useEffect
   useEffect(() => {
-    fetchData();
+    fetchData(); // Initial fetch
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [previousOrderCount]);
+  }, [fetchData]);
 
   if (loading) {
     return (
