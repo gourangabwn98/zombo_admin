@@ -5,7 +5,6 @@ import {
   ShoppingBag,
   Clock,
   CheckCircle,
-  XCircle,
   Truck,
   ExternalLink,
   BellRing,
