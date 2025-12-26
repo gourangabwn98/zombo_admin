@@ -27,26 +27,30 @@ const AdminPanel = () => {
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  const playRingtone = () => {
-    const audio = new Audio(RINGTONE_URL);
-    audio.volume = 0.9;
-    audio.play().catch((err) => {
-      console.log("Audio play failed:", err);
-    });
-  };
-
   const fetchData = useCallback(async () => {
-    try {
-      const ordersRes = await fetch(`${API_BASE_URL}/api/admin/orders`);
-      const ordersData = await ordersRes.json();
+    // Define playRingtone inside to avoid dependency issues
+    const playRingtone = () => {
+      const audio = new Audio(RINGTONE_URL);
+      audio.volume = 0.9;
+      audio.play().catch((err) => {
+        console.log("Audio play failed:", err);
+      });
+    };
 
-      const statsRes = await fetch(`${API_BASE_URL}/api/admin/stats`);
+    try {
+      const [ordersRes, statsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/orders`),
+        fetch(`${API_BASE_URL}/api/admin/stats`),
+      ]);
+
+      const ordersData = await ordersRes.json();
       const statsData = await statsRes.json();
 
       if (ordersData?.success && Array.isArray(ordersData.orders)) {
         const newOrders = ordersData.orders.reverse();
         setOrders(newOrders);
 
+        // Play sound only when a genuinely new order appears
         if (newOrders.length > previousOrderCount && previousOrderCount > 0) {
           playRingtone();
         }
@@ -68,7 +72,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [previousOrderCount, playRingtone]);
+  }, [previousOrderCount]); // Only previousOrderCount is needed as dependency
 
   const updateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
@@ -97,8 +101,8 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    fetchData(); // Initial load
-    const interval = setInterval(fetchData, 10000); // Poll every 10 seconds
+    fetchData(); // Initial fetch
+    const interval = setInterval(fetchData, 10000); // Every 10 seconds
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -342,6 +346,7 @@ const pageStyle = {
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 };
+
 const loadingContainer = {
   display: "flex",
   flexDirection: "column",
@@ -349,6 +354,7 @@ const loadingContainer = {
   justifyContent: "center",
   minHeight: "70vh",
 };
+
 const containerStyle = { maxWidth: 1400, margin: "0 auto" };
 const headerContainer = {
   marginBottom: 40,
