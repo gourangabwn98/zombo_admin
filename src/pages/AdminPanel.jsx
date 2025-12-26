@@ -28,7 +28,7 @@ const AdminPanel = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   const fetchData = useCallback(async () => {
-    // Define playRingtone inside to avoid dependency issues
+    // Ringtone function defined INSIDE → no ESLint error
     const playRingtone = () => {
       const audio = new Audio(RINGTONE_URL);
       audio.volume = 0.9;
@@ -50,7 +50,7 @@ const AdminPanel = () => {
         const newOrders = ordersData.orders.reverse();
         setOrders(newOrders);
 
-        // Play sound only when a genuinely new order appears
+        // Play sound only when a new order arrives
         if (newOrders.length > previousOrderCount && previousOrderCount > 0) {
           playRingtone();
         }
@@ -72,7 +72,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [previousOrderCount]); // Only previousOrderCount is needed as dependency
+  }, [previousOrderCount]); // Only this dependency → perfect
 
   const updateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
@@ -101,8 +101,8 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    fetchData(); // Initial fetch
-    const interval = setInterval(fetchData, 10000); // Every 10 seconds
+    fetchData(); // First load
+    const interval = setInterval(fetchData, 10000); // Check every 10 seconds
     return () => clearInterval(interval);
   }, [fetchData]);
 
