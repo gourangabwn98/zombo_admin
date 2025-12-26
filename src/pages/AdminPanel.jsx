@@ -28,7 +28,6 @@ const AdminPanel = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   const fetchData = useCallback(async () => {
-    // Ringtone function defined INSIDE → no ESLint error
     const playRingtone = () => {
       const audio = new Audio(RINGTONE_URL);
       audio.volume = 0.9;
@@ -50,7 +49,6 @@ const AdminPanel = () => {
         const newOrders = ordersData.orders.reverse();
         setOrders(newOrders);
 
-        // Play sound only when a new order arrives
         if (newOrders.length > previousOrderCount && previousOrderCount > 0) {
           playRingtone();
         }
@@ -72,7 +70,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [previousOrderCount]); // Only this dependency → perfect
+  }, [previousOrderCount]);
 
   const updateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
@@ -101,8 +99,8 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    fetchData(); // First load
-    const interval = setInterval(fetchData, 10000); // Check every 10 seconds
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -189,6 +187,7 @@ const AdminPanel = () => {
               <thead>
                 <tr style={tableHeaderRow}>
                   <th style={tableHeader}>Order ID</th>
+                  <th style={tableHeader}>Customer</th> {/* ← NEW COLUMN */}
                   <th style={tableHeader}>Items</th>
                   <th style={tableHeader}>Amount</th>
                   <th style={tableHeader}>Address</th>
@@ -218,6 +217,28 @@ const AdminPanel = () => {
                         <span style={orderIdBadge}>
                           #{order._id.slice(-6).toUpperCase()}
                         </span>
+                      </td>
+
+                      {/* ← NEW: Customer Name + Phone */}
+                      <td style={tableCell}>
+                        <div style={{ minWidth: 140 }}>
+                          <div style={{ fontWeight: 700, color: "#1e293b" }}>
+                            {order.user?.name || "Guest User"}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              color: "#2563eb",
+                              fontWeight: 600,
+                              marginTop: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            📞 {order.user?.phone || "No phone"}
+                          </div>
+                        </div>
                       </td>
 
                       <td style={tableCell}>
