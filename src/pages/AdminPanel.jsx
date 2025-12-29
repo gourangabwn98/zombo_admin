@@ -19,7 +19,7 @@ const API_BASE_URL = "https://zombo.onrender.com";
 const RINGTONE_URL = "/notification.mp3";
 
 const AdminPanel = () => {
-  const [orders, setOrders] = useState([]);
+  const [setOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]); // Keep full list for "All Orders"
   const [stats, setStats] = useState({
     totalUsers: 0,
