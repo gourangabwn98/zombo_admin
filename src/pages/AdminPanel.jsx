@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Users,
   IndianRupee,
@@ -9,18 +9,13 @@ import {
   ExternalLink,
   BellRing,
   RefreshCw,
-  Download,
-  Eye,
-  Calendar,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 
 const API_BASE_URL = "https://zombo.onrender.com";
 const RINGTONE_URL = "/notification.mp3";
 
 const AdminPanel = () => {
-  const [setOrders] = useState([]);
-  const [allOrders, setAllOrders] = useState([]); // Keep full list for "All Orders"
+  const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
@@ -31,14 +26,14 @@ const AdminPanel = () => {
   const [updatingId, setUpdatingId] = useState(null);
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [showAllOrders, setShowAllOrders] = useState(false);
-  const [showCustomers, setShowCustomers] = useState(false);
 
   const fetchData = useCallback(async () => {
     const playRingtone = () => {
       const audio = new Audio(RINGTONE_URL);
       audio.volume = 0.9;
-      audio.play().catch((err) => console.log("Audio play failed:", err));
+      audio.play().catch((err) => {
+        console.log("Audio play failed:", err);
+      });
     };
 
     try {
@@ -52,8 +47,7 @@ const AdminPanel = () => {
 
       if (ordersData?.success && Array.isArray(ordersData.orders)) {
         const newOrders = ordersData.orders.reverse();
-        setAllOrders(newOrders); // Full list
-        setOrders(newOrders); // Will be filtered later
+        setOrders(newOrders);
 
         if (newOrders.length > previousOrderCount && previousOrderCount > 0) {
           playRingtone();
@@ -91,7 +85,7 @@ const AdminPanel = () => {
       );
 
       if (res.ok) {
-        setAllOrders((prev) =>
+        setOrders((prev) =>
           prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
         );
       } else {
@@ -109,50 +103,6 @@ const AdminPanel = () => {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
-
-  // Get today's date in YYYY-MM-DD
-  const today = new Date().toLocaleDateString("en-CA"); // "2025-12-29"
-
-  // Filter orders: today by default
-  const displayedOrders = useMemo(() => {
-    if (showAllOrders) return allOrders;
-    return allOrders.filter((order) => {
-      const orderDate = new Date(order.createdAt).toLocaleDateString("en-CA");
-      return orderDate === today;
-    });
-  }, [allOrders, showAllOrders, today]);
-
-  // Unique customers (by phone)
-  const uniqueCustomers = useMemo(() => {
-    const map = new Map();
-    allOrders.forEach((order) => {
-      const name = order.user?.name?.trim() || "Guest User";
-      const phone = order.user?.phone || "N/A";
-      if (phone !== "N/A") {
-        map.set(phone, { name, phone });
-      }
-    });
-    return Array.from(map.values());
-  }, [allOrders]);
-
-  // Download Excel
-  const downloadExcel = () => {
-    if (uniqueCustomers.length === 0) {
-      alert("No customer data to download.");
-      return;
-    }
-
-    const data = uniqueCustomers.map((c) => ({
-      "Customer Name": c.name,
-      "Phone Number": c.phone,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Customers");
-
-    XLSX.writeFile(wb, `Zombo_Customers_${today}.xlsx`);
-  };
 
   if (loading) {
     return (
@@ -217,54 +167,18 @@ const AdminPanel = () => {
           />
         </div>
 
-        {/* Control Buttons */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 16,
-            marginBottom: 32,
-            justifyContent: "center",
-          }}
-        >
-          <button
-            onClick={() => setShowAllOrders(!showAllOrders)}
-            style={{ ...controlBtn, background: "#3b82f6" }}
-          >
-            <Calendar size={20} />
-            {showAllOrders ? "Show Today's Orders" : "Show All Orders"}
-          </button>
-
-          <button
-            onClick={() => setShowCustomers(!showCustomers)}
-            style={{ ...controlBtn, background: "#10b981" }}
-          >
-            <Eye size={20} />
-            {showCustomers ? "Hide Customers" : "View Customers"}
-          </button>
-
-          <button
-            onClick={downloadExcel}
-            style={{ ...controlBtn, background: "#8b5cf6" }}
-          >
-            <Download size={20} />
-            Download Excel
-          </button>
-        </div>
-
         {/* Orders Section */}
         <div style={ordersSectionHeader}>
           <h2 style={sectionTitle}>
             <Truck size={28} style={{ marginRight: 10 }} />
-            {showAllOrders ? "All Orders" : "Today's Orders"} (
-            {displayedOrders.length})
+            Live Orders ({orders.length})
           </h2>
         </div>
 
-        {displayedOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <div style={emptyState}>
             <ShoppingBag size={64} style={{ opacity: 0.3 }} />
-            <h3 style={{ marginTop: 20 }}>No Orders Found</h3>
+            <h3 style={{ marginTop: 20 }}>No Orders Yet</h3>
             <p>Orders will appear here in real-time 🚀</p>
           </div>
         ) : (
@@ -273,7 +187,7 @@ const AdminPanel = () => {
               <thead>
                 <tr style={tableHeaderRow}>
                   <th style={tableHeader}>Order ID</th>
-                  <th style={tableHeader}>Customer</th>
+                  <th style={tableHeader}>Customer</th> {/* ← NEW COLUMN */}
                   <th style={tableHeader}>Items</th>
                   <th style={tableHeader}>Amount</th>
                   <th style={tableHeader}>Address</th>
@@ -284,7 +198,7 @@ const AdminPanel = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayedOrders.map((order, index) => {
+                {orders.map((order, index) => {
                   const address = order.address || "";
                   const addressLines = address.split("\n");
                   const isNewOrder = index === 0;
@@ -304,6 +218,8 @@ const AdminPanel = () => {
                           #{order._id.slice(-6).toUpperCase()}
                         </span>
                       </td>
+
+                      {/* ← NEW: Customer Name + Phone */}
                       <td style={tableCell}>
                         <div style={{ minWidth: 140 }}>
                           <div style={{ fontWeight: 700, color: "#1e293b" }}>
@@ -324,6 +240,7 @@ const AdminPanel = () => {
                           </div>
                         </div>
                       </td>
+
                       <td style={tableCell}>
                         <div style={itemsList}>
                           {(order.items || []).map((item, i) => (
@@ -338,16 +255,19 @@ const AdminPanel = () => {
                           ))}
                         </div>
                       </td>
+
                       <td style={tableCell}>
                         <span style={amountText}>
                           ₹{order.totalAmount || 0}
                         </span>
                       </td>
+
                       <td style={tableCell}>
                         <div style={addressText}>
                           {addressLines[0] || "No address"}
                         </div>
                       </td>
+
                       <td style={tableCell}>
                         {address.includes("google.com/maps") ? (
                           <a
@@ -363,6 +283,7 @@ const AdminPanel = () => {
                           <span style={{ color: "#9ca3af" }}>-</span>
                         )}
                       </td>
+
                       <td style={tableCell}>
                         <span
                           style={{
@@ -373,6 +294,7 @@ const AdminPanel = () => {
                           {order.status || "Accepted"}
                         </span>
                       </td>
+
                       <td style={tableCell}>
                         <div style={dateTimeText}>
                           {order.createdAt
@@ -386,6 +308,7 @@ const AdminPanel = () => {
                             : "-"}
                         </div>
                       </td>
+
                       <td style={tableCell}>
                         {order.status !== "Delivered" ? (
                           <button
@@ -414,34 +337,6 @@ const AdminPanel = () => {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {/* Unique Customers Table */}
-        {showCustomers && (
-          <div style={{ marginTop: 48 }}>
-            <h2 style={sectionTitle}>
-              <Users size={28} style={{ marginRight: 10 }} />
-              Unique Customers ({uniqueCustomers.length})
-            </h2>
-            <div style={tableContainer}>
-              <table style={tableStyle}>
-                <thead>
-                  <tr style={tableHeaderRow}>
-                    <th style={tableHeader}>Customer Name</th>
-                    <th style={tableHeader}>Phone Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uniqueCustomers.map((customer, i) => (
-                    <tr key={i} style={tableRow}>
-                      <td style={tableCell}>{customer.name}</td>
-                      <td style={tableCell}>{customer.phone}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
       </div>
@@ -617,20 +512,6 @@ const actionBtn = {
   gap: 6,
   transition: "all 0.2s",
   boxShadow: "0 2px 4px rgba(16,185,129,0.3)",
-};
-const controlBtn = {
-  padding: "12px 20px",
-  color: "#fff",
-  border: "none",
-  borderRadius: 12,
-  fontWeight: 600,
-  fontSize: 15,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-  transition: "all 0.2s",
 };
 
 export default AdminPanel;
